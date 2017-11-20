@@ -1,0 +1,22 @@
+Team Name:
+    the-a-team-but-not-in-the-ed-sheeran-way
+Members:
+    - Chris Hinstorff
+    - Derek Benson
+Project Summary:
+    A game server that can support multiple clients playing different
+    games against each other. Like a multiplayer game where your
+    opponents are playing a different game.
+Minimum Deliverable:
+    - A server that can support N instances of the game
+    - A simple add-to-15/tic-tac-toe game (a la https://youtu.be/BXR4jgdJeRM)
+Maximum Deliverable:
+    - A leaderboard / accounts?
+    - Additional (actually fun) games using this mechanic
+First Step:
+    - Determine if Erlang or Python better suits our needs
+Biggest Foreseen Problems:
+    - Determining how to do the real-time translation between sub-games
+      (client-side or server-side)
+    - Can the games actually be fun/compelling or is our multiplayer
+      mechanic too confusing/boring

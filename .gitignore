@@ -3,3 +3,5 @@ Env/
 \#*
 #*
 *.pyc
+*.beam
+*.dump

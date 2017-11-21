@@ -1,0 +1,33 @@
+start a main server registered under the atom 'server'
+
+when calls to a chat server are made, check if that server exists
+otherwise create it and register it to the 'chat + {chatname}' atom
+
+this spins the servers chat messages, or tells the client the chat server is available
+main server also spins up leaderboard servers for the games
+
+
+messages handled by the login/logout server
+
+{login, Name}
+{logout}
+
+messages handled by the room server
+{list_rooms}
+{create_room}
+
+
+messages handled by the client
+
+{online, [users online]}
+{msg, room, contents}
+
+
+messages handled by the chat server (room)
+
+{subscribe, client}
+{unsubscribe, client}
+{send_msg, msg}
+
+
+

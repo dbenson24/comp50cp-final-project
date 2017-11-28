@@ -1,4 +1,4 @@
--module(user).
+-module(userserver).
 -behaviour(gen_server).
 
 

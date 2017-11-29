@@ -1,32 +1,23 @@
 import pygame
 from text_input import TextInput
 
-pygame.init()
-screen = pygame.display.set_mode((300, 480))
-done = False
-
 MESSAGES_ON_SCREEN = 6
-
-pygame.font.init()
-myfont = pygame.font.SysFont("", 28)
-textInput = TextInput(font_size = 28)
-clock = pygame.time.Clock()
 
 chat_log = []
 
-def send_chat(text):
+def send_chat(text, font):
     print "Send: '%s'" % text
-    add_to_chat_log(text, True)
+    add_to_chat_log(text, True, font)
 
-def receive_chat(text):
+def receive_chat(text, font):
     print "Receive: '%s'" % text
-    add_to_chat_log(text, False)
+    add_to_chat_log(text, False, font)
 
-def add_to_chat_log(text, outbound):
-    render = (outbound, myfont.render(text, False, (240, 240, 240)))
+def add_to_chat_log(text, outbound, font):
+    render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
         
-def blit_chat_log():
+def blit_chat_log(screen):
     i = 0
     messages_remaining = min(MESSAGES_ON_SCREEN, len(chat_log))
     first = len(chat_log) - messages_remaining
@@ -47,22 +38,34 @@ def blit_chat_log():
         i += 1
         messages_remaining -= 1
 
-while not done:
-    screen.fill((40, 40, 40))
-    pygame.draw.rect(screen, (128, 128, 128), pygame.Rect(0, 440, 300, 50))
-    blit_chat_log()
+def main():
+    pygame.init()
+    pygame.font.init()
+    screen = pygame.display.set_mode((300, 480))
+    textInput = TextInput(font_size = 28)
+    myfont = pygame.font.SysFont("", 28)
+    clock = pygame.time.Clock()
 
-    events = pygame.event.get()
-    for event in events:
-        if event.type == pygame.QUIT:
-            done = True
+    done = False
+    while not done:
+        screen.fill((40, 40, 40))
+        pygame.draw.rect(screen, (128, 128, 128), pygame.Rect(0, 440, 300, 50))
+        blit_chat_log(screen)
 
-    if textInput.update(events):
-        text = textInput.get_text()
-        textInput.clear()
-        if text != "":
-            send_chat(text)
-    screen.blit(textInput.get_surface(), (10, 450))
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                done = True
 
-    pygame.display.update()
-    clock.tick(30)
+        if textInput.update(events):
+            text = textInput.get_text()
+            textInput.clear()
+            if text != "":
+                send_chat(text, myfont)
+        screen.blit(textInput.get_surface(), (10, 450))
+        
+        pygame.display.update()
+        clock.tick(30)
+
+if __name__ == "__main__":
+    main()

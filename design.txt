@@ -9,7 +9,7 @@ main server also spins up leaderboard servers for the games
 
 messages handled by the login/logout server
 
-{login, Name, Node, Server}
+{login, Name, Node, ServerAtom}
 {logout}
 
 messages handled by the room server
@@ -23,11 +23,17 @@ messages handled by the client
 
 
 messages handled by the chat server (room)
-{subscribe, Name, Node, Server}
+{subscribe, Name, Node, ServerAtom}
 {unsubscribe, Name}
-{login, Name, Node, Server}
+{login, Name, Node, ServerAtom}
 {logout, Name}
 {send_msg, msg}
 
+Nodes that run rooms have a Room Server
+Init takes a node that has the userserver running on it
 
+registers the server
+
+it responds to
+{create_room}
 

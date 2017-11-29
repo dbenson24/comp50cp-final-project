@@ -1,16 +1,16 @@
 -module(chat).
 -behaviour(gen_server).
 
--export([start_link/0, stop/0]).
+-export([start_link/1, stop/1]).
 -export([subscribe/3, unsubscribe/2, message/3, list/2, join_room/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
 
 % Client Functions
-start_link() ->
-    gen_server:start_link({local, chatserver}, ?MODULE, [], []).
+start_link(Name) ->
+    gen_server:start_link({local, Name}, ?MODULE, [], []).
 
-stop() ->
-    gen_server:stop(chatserver).
+stop(Name) ->
+    gen_server:stop(Name).
 
 subscribe(Server, Room, Name) ->
     Client = {self(), Name},

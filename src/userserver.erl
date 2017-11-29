@@ -18,21 +18,31 @@ stop() ->
 
 % Server Functions
 init([]) ->
-    {ok, #{}}.
+    {ok, {#{}, #{}}}.
 
-handle_call({login, Name}, _From, State) ->
-    NewState = case maps:is_key(Name, State) of
-                   true -> State;
-                   false -> State#{Name => {false}} end,
-    #{Name := UserState} = NewState,
+handle_call({login, Name}, _From, {Users, Rooms}) ->
+    NewUsers = case maps:is_key(Name, Users) of
+                   true -> Users;
+                   false -> Users#{Name => {false}} end,
+    #{Name := UserState} = NewUsers,
     case UserState of
-        {true} -> {reply, {err, "User was already logged in"}, State};
-        {false} -> {reply, {ok}, State#{Name => {true}}} end; % logic here to automatically subscribe the client to updates to their chats
-handle_call({logout, Name}, _From, State) ->
-    {reply, {ok}, State#{Name => {false}}}.
+        {true} -> {reply, {err, "User was already logged in"}, {Users, Rooms}};
+        {false} -> {reply, {ok}, {Users#{Name => {true}}, Rooms}} end; % logic here to automatically subscribe the client to updates to their chats
+handle_call({logout, Name}, _From, {Users, Rooms}) ->
+    {reply, {ok}, {Users#{Name => {false}}, Rooms}};
+handle_call({list_rooms}, _From, {Users, Rooms}) ->
+    {reply, Rooms, {Users, Rooms}};
+handle_call({register_room, Node, Name}, _From, {Users, Rooms}) ->
+    {Resp, NewRooms} = case maps:is_key(Name, Rooms) of
+                    true -> {{err, "Room was already registered"}, Rooms };
+                    false -> {{ok}, Rooms#{Name => Node}} end,
+    {reply, Resp, {Users, NewRooms}};
+handle_call({unregister_room, Name}, _From, {Users, Rooms}) ->
+    NewRooms = maps:remove(Name, Rooms),
+    {reply, {ok}, {Users, NewRooms}}.
 
-handle_cast(_, State) ->
-    {noreply, State}.
+handle_cast(_, {Users, Rooms}) ->
+    {noreply, {Users, Rooms}}.
 
 
 terminate(normal, _State) ->

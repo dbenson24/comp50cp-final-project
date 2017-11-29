@@ -9,7 +9,7 @@ main server also spins up leaderboard servers for the games
 
 messages handled by the login/logout server
 
-{login, Name}
+{login, Name, Node, Server}
 {logout}
 
 messages handled by the room server
@@ -18,15 +18,15 @@ messages handled by the room server
 
 
 messages handled by the client
-
 {online, [users online]}
 {msg, room, contents}
 
 
 messages handled by the chat server (room)
-
-{subscribe, client}
-{unsubscribe, client}
+{subscribe, Name, Node, Server}
+{unsubscribe, Name}
+{login, Name, Node, Server}
+{logout, Name}
 {send_msg, msg}
 
 

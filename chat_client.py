@@ -1,9 +1,12 @@
 import pygame
 from text_input import TextInput
+import threading
 
 MESSAGES_ON_SCREEN = 6
 
 chat_log = []
+gameThread = False
+done = False
 
 def send_chat(text, font):
     print "Send: '%s'" % text
@@ -16,7 +19,7 @@ def receive_chat(text, font):
 def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
-        
+
 def blit_chat_log(screen):
     i = 0
     messages_remaining = min(MESSAGES_ON_SCREEN, len(chat_log))
@@ -24,7 +27,7 @@ def blit_chat_log(screen):
 
     while messages_remaining > 0:
         outbound, render = chat_log[first + i]
-        x = 10 
+        x = 10
         y = 440 - 40 * messages_remaining
 
         text_rect = render.get_rect()
@@ -39,6 +42,7 @@ def blit_chat_log(screen):
         messages_remaining -= 1
 
 def main():
+    global done
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((300, 480))
@@ -63,9 +67,23 @@ def main():
             if text != "":
                 send_chat(text, myfont)
         screen.blit(textInput.get_surface(), (10, 450))
-        
+
         pygame.display.update()
         clock.tick(30)
+    pygame.display.quit()
+    pygame.quit()
+
+def start_game_thread():
+    global gameThread
+    gameThread = threading.Thread(target=main)
+    gameThread.start()
+    return True
+
+def stop_game_thread():
+    global done
+    done = True
+    gameThread.join()
+    return True
 
 if __name__ == "__main__":
     main()

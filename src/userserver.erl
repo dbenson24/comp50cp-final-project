@@ -5,7 +5,7 @@
 
 -export([start_link/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
--export([login/2, register_node/2, join_room/3]).
+-export([login/2, logout/2, register_node/2, join_room/3]).
 
 
 
@@ -18,6 +18,9 @@ stop() ->
 
 login(UserServer, UserName) ->
     gen_server:call({userserver, UserServer}, {login, UserName}).
+
+logout(UserServer, UserName) ->
+    gen_server:call({userserver, UserServer}, {logout, UserName}).
 
 register_node(UserServer, Node) ->
     gen_server:call({userserver, UserServer}, {register_node, Node}).

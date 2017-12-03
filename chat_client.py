@@ -8,6 +8,9 @@ chat_log = []
 gameThread = False
 done = False
 
+def receive_chat_default(text):
+    receive_chat(text, pygame.font.SysFont("", 28))
+
 def send_chat(text, font):
     print "Send: '%s'" % text
     add_to_chat_log(text, True, font)

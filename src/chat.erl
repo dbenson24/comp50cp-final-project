@@ -24,7 +24,7 @@ handle_call({list_clients}, _From, {ServerName, Clients}) ->
     {reply, Clients, {ServerName, Clients}};
 
 handle_call({message, Message}, _From, {ServerName, Clients}) ->
-    lists:map(fun(Client) -> gen_server:cast(Client, {ServerName, message, Message}) end, Clients),
+    lists:map(fun(Client) -> gen_server:cast(Client, {message, ServerName, Message}) end, Clients),
     {reply, ok, {ServerName, Clients}}.
 
 handle_cast({subscribe, Client}, {ServerName, Clients}) ->

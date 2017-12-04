@@ -4,7 +4,7 @@
 
 -export([start_link/2, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
--export([join_room/1, send_message/2, register_handler/1, unregister_handler/1]).
+-export([join_room/1, send_message/2, register_handler/1, unregister_handler/1, test/0]).
 
 
 % Client Functions
@@ -17,8 +17,17 @@ stop() ->
 join_room(Room) ->
     gen_server:call({clientserver, node()}, {join_room, list_to_atom(Room)}).
 
-send_message(Room, Message) ->
-    gen_server:call({clientserver, node()}, {send_message, list_to_atom(Room), Message}).
+send_message([R | Oom], [M | Essage]) ->
+    Room = list_to_atom([R | Oom]),
+    Message = [M | Essage],
+    gen_server:call({clientserver, node()}, {send_message, Room, Message});
+
+send_message(<<R,Oom/binary>>, <<M,Essage/binary>>) ->
+    Room = list_to_atom(binary_to_list(<<R,Oom/binary>>)),
+    Message = binary_to_list(<<M,Essage/binary>>),
+    gen_server:call({clientserver, node()}, {send_message, Room, Message}).
+
+test() -> io:format("clientserver test!~n"), fuckerlport.
 
 register_handler(F) ->
     ok = gen_server:call({clientserver, node()}, {register_handler, F}),

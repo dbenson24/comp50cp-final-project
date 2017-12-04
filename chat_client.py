@@ -8,6 +8,8 @@ chat_log = []
 gameThread = False
 ttt_mode = False
 done = False
+gamestate] * 9
+
 
 COLOR = {
     "chat_box":      ( 40,  40,  40),
@@ -86,12 +88,17 @@ def draw_ttt(screen):
 def make_click_boxes():
     xs = [336 + 142*i for i in xrange(0,4)]
     ys = [ 36 + 142*i for i in xrange(0,4)]
-    return [(i, pygame.Rect(line_to_box(i), (136,136))) for i in xrange(1, 9+1)]
+    boxes = []
+    for i in xrange(1, 9+1):
+        x,y = line_to_box(i)
+        boxes.append((i, pygame.Rect(xs[x], ys[y], 136, 136)))
+    return boxes
     
 def check_click_boxes(click_boxes):
     for index, box in click_boxes:
         if pygame.mouse.get_pressed()[0] and box.collidepoint(pygame.mouse.get_pos()):
-            click_box(index)
+            #click_box(index)
+            print "Clicked box %s" % index
 
 def main():
     global done
@@ -101,6 +108,7 @@ def main():
     textInput = TextInput(font_size = 28)
     myfont = pygame.font.SysFont("", 28)
     clock = pygame.time.Clock()
+    click_boxes = make_click_boxes()
 
     done = False
     while not done:
@@ -114,6 +122,8 @@ def main():
         else:
             draw_nim(screen)
 
+        check_click_boxes(click_boxes)
+            
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:

@@ -35,7 +35,6 @@ def receive_chat_default(text):
 def send_chat(text, font):
     print "Send: '%s'" % text
     try:
-        #call()
         cast(erlPID, (Atom("clientserver"), Atom("send_message"), [str("tictactoe"), str(text)]))
     except:
         print "something bad happened"
@@ -160,7 +159,7 @@ def main():
 
         pygame.display.update()
         clock.tick(30)
-    cast(erlPID, Atom(b'done'))
+    cast(erlPID, Atom("done"))
     pygame.display.quit()
     pygame.quit()
 

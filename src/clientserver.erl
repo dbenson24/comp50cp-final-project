@@ -4,7 +4,7 @@
 
 -export([start_link/2, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
--export([join_room/1, send_message/2, register_handler/1]).
+-export([join_room/1, send_message/2, register_handler/1, unregister_handler/1]).
 
 
 % Client Functions
@@ -21,7 +21,12 @@ send_message(Room, Message) ->
     gen_server:call({clientserver, node()}, {send_message, list_to_atom(Room), Message}).
 
 register_handler(F) ->
-    gen_server:call({clientserver, node()}, {register_handler, F}).
+    ok = gen_server:call({clientserver, node()}, {register_handler, F}),
+    {ok, F}.
+
+unregister_handler(F) ->
+    ok = gen_server:call({clientserver, node()}, {unregister_handler, F}),
+    ok.
 
 
 
@@ -41,7 +46,10 @@ handle_call({join_room, RoomAtom}, _From, {UserServer, UserName, Rooms, MessageH
     
 
 handle_call({register_handler, Handler}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
-    {reply, ok, {UserServer, UserName, Rooms, [Handler | MessageHandlers]}}.
+    {reply, ok, {UserServer, UserName, Rooms, [Handler | MessageHandlers]}};
+
+handle_call({unregister_handler, Handler}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
+    {reply, ok, {UserServer, UserName, Rooms, lists:delete(Handler, MessageHandlers)}}.
 
 handle_cast({message, Room, Message}, {UserServer, UserName, Rooms, MessageHandlers}) ->
     % Broadcast Message to the handlers

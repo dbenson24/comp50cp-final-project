@@ -8,11 +8,11 @@ start_game(UserServerNode, UserName) ->
     ok = clientserver:join_room("tictactoe"),
     {ok, P} = python:start(),
     true = python:call(P, 'chat_client', 'start_game_thread', []),
-    ok = clientserver:register_handler(fun (Message) -> io:format("process ~p receiving ~p~n", [P, Message]), python:call(P, 'chat_client', 'receive_chat_default', [list_to_binary(Message)]) end), 
+    {ok, _Handler} = clientserver:register_handler(fun (Message) -> io:format("process ~p receiving ~p~n", [P, Message]), python:call(P, 'chat_client', 'receive_chat_default', [list_to_binary(Message)]) end), 
     {ok, P}.
 
 stop_game(P) ->
     true = python:call(P, 'chat_client', 'stop_game_thread', []),
-    
+    ok = clientserver:stop(),
     ok.
 

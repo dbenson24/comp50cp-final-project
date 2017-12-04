@@ -6,7 +6,16 @@ MESSAGES_ON_SCREEN = 6
 
 chat_log = []
 gameThread = False
+ttt_mode = False
 done = False
+
+COLOR = {
+    "chat_box":      ( 40,  40,  40),
+    "chat_input":    (128, 128, 128),
+    "game_board":    (160, 200, 200),
+    "ttt_line":      (100, 100, 100),
+    "nim_available": (100, 100, 100), 
+}
 
 def receive_chat_default(text):
     receive_chat(text, pygame.font.SysFont("", 28))
@@ -44,20 +53,66 @@ def blit_chat_log(screen):
         i += 1
         messages_remaining -= 1
 
+def line_to_box(i):
+    return ((i-1)%3, (i-1)//3)
+
+def draw_box(screen, font, char, x, y, color):
+    xs = [395 + 142*i for i in xrange(0,4)]
+    ys = [107 + 142*i for i in xrange(0,4)]
+    render = font.render(char, False, color)
+    text_rect = render.get_rect()
+    text_rect.center = (xs[x], ys[y])
+    screen.blit(render, text_rect)
+    
+def draw_nim(screen):
+    nimfont = pygame.font.SysFont("", 136)
+
+    for i in xrange(1, 9+1):
+        x, y = line_to_box(i)
+        draw_box(screen, nimfont, str(i), x, y, COLOR['nim_available'])
+
+def draw_ttt(screen):
+    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330 + 136*1, 30, 6, 420))
+    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330 + 136*2, 30, 6, 420))
+    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330, 30 + 136*1, 420, 6))
+    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330, 30 + 136*2, 420, 6))
+
+    tttfont = pygame.font.SysFont("", 136)
+    cells = [None, 4,9,2,3,5,7,8,1,6]
+    for i in xrange(1, 9+1):
+        x, y = line_to_box(i)
+        draw_box(screen, tttfont, str(cells[i]), x, y, COLOR['nim_available'])
+
+def make_click_boxes():
+    xs = [336 + 142*i for i in xrange(0,4)]
+    ys = [ 36 + 142*i for i in xrange(0,4)]
+    return [(i, pygame.Rect(line_to_box(i), (136,136))) for i in xrange(1, 9+1)]
+    
+def check_click_boxes(click_boxes):
+    for index, box in click_boxes:
+        if pygame.mouse.get_pressed()[0] and box.collidepoint(pygame.mouse.get_pos()):
+            click_box(index)
+
 def main():
     global done
     pygame.init()
     pygame.font.init()
-    screen = pygame.display.set_mode((300, 480))
+    screen = pygame.display.set_mode((780, 480))
     textInput = TextInput(font_size = 28)
     myfont = pygame.font.SysFont("", 28)
     clock = pygame.time.Clock()
 
     done = False
     while not done:
-        screen.fill((40, 40, 40))
-        pygame.draw.rect(screen, (128, 128, 128), pygame.Rect(0, 440, 300, 50))
+        screen.fill(COLOR['game_board'])
+        pygame.draw.rect(screen, COLOR['chat_box'],   pygame.Rect(0,   0, 300, 480))
+        pygame.draw.rect(screen, COLOR['chat_input'], pygame.Rect(0, 440, 300,  50))
         blit_chat_log(screen)
+
+        if ttt_mode:
+            draw_ttt(screen)
+        else:
+            draw_nim(screen)
 
         events = pygame.event.get()
         for event in events:

@@ -2,39 +2,51 @@
 -behaviour(gen_server).
 
 
--export([start_link/2, stop/0]).
+-export([start_link/2, stop/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
--export([join_room/1, send_message/2, register_handler/1, unregister_handler/1]).
+-export([join_room/2, send_message/3, register_handler/2, unregister_handler/2]).
 
 
 % Client Functions
 start_link(UserServer, UserName) ->
-    gen_server:start_link({local, clientserver}, ?MODULE, {UserServer, UserName}, []).
+    ServerAtom = username_to_serveratom(UserName),
+    {ok, _} = gen_server:start_link({local, ServerAtom}, ?MODULE, {UserServer, UserName}, []),
+    {ok, ServerAtom}.
 
-stop() ->
-    gen_server:stop(clientserver).
+stop(UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    gen_server:stop(ServerAtom).
 
-join_room(Room) ->
-    gen_server:call({clientserver, node()}, {join_room, list_to_atom(Room)}).
+join_room(Room, UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    gen_server:call({ServerAtom, node()}, {join_room, list_to_atom(Room)}).
 
-send_message([R | Oom], [M | Essage]) ->
+send_message([R | Oom], [M | Essage], UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    io:format("send_message list~n"),
     Room = list_to_atom([R | Oom]),
     Message = [M | Essage],
-    gen_server:call({clientserver, node()}, {send_message, Room, Message});
+    gen_server:call({ServerAtom, node()}, {send_message, Room, Message});
 
-send_message(<<R,Oom/binary>>, <<M,Essage/binary>>) ->
+send_message(<<R,Oom/binary>>, <<M,Essage/binary>>, UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    io:format("send_message binary~n"),
     Room = list_to_atom(binary_to_list(<<R,Oom/binary>>)),
     Message = binary_to_list(<<M,Essage/binary>>),
-    gen_server:call({clientserver, node()}, {send_message, Room, Message}).
+    gen_server:call({ServerAtom, node()}, {send_message, Room, Message}).
 
-register_handler(F) ->
-    ok = gen_server:call({clientserver, node()}, {register_handler, F}),
+register_handler(F, UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    ok = gen_server:call({ServerAtom, node()}, {register_handler, F}),
     {ok, F}.
 
-unregister_handler(F) ->
-    ok = gen_server:call({clientserver, node()}, {unregister_handler, F}),
+unregister_handler(F, UserName) ->
+    ServerAtom = username_to_serveratom(UserName),
+    ok = gen_server:call({ServerAtom, node()}, {unregister_handler, F}),
     ok.
 
+username_to_serveratom(UserName) ->
+    list_to_atom(UserName ++ "_clientserver").
 
 
 init({UserServer, UserName}) ->
@@ -47,7 +59,8 @@ handle_call({send_message, RoomAtom, Message}, _From, {UserServer, UserName, Roo
     {reply, chat:message({RoomAtom, Node}, Message), {UserServer, UserName, Rooms, MessageHandlers}};
 
 handle_call({join_room, RoomAtom}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
-    {ok, Node} = userserver:join_room(UserServer, RoomAtom, {clientserver, node()}),
+    ServerAtom = username_to_serveratom(UserName),
+    {ok, Node} = userserver:join_room(UserServer, RoomAtom, {ServerAtom, node()}),
     io:format("clientserver: joined room: ~p on ~p~n", [RoomAtom, Node]),
     {reply, ok, {UserServer, UserName, Rooms#{RoomAtom => Node}, MessageHandlers}};
     
@@ -66,7 +79,7 @@ handle_cast({message, Room, Message}, {UserServer, UserName, Rooms, MessageHandl
 
 
 terminate(normal, {UserServer, UserName, _, _}) ->
-    io:format("clientserver is terminating.~n",[]),
+    io:format("clientserver: is terminating.~n",[]),
     ok = userserver:logout(UserServer, UserName),
     ok.
 

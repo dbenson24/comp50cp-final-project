@@ -14,13 +14,14 @@ gameThread = False
 ttt_mode = False
 done = False
 gamestate = [0] * 9
+username = ""
 
 COLOR = {
     "chat_box":      ( 40,  40,  40),
     "chat_input":    (128, 128, 128),
     "game_board":    (160, 200, 200),
     "ttt_line":      (100, 100, 100),
-    "nim_available": (100, 100, 100), 
+    "nim_available": (100, 100, 100),
 }
 
 erlPID = 0
@@ -35,7 +36,7 @@ def receive_chat_default(text):
 def send_chat(text, font):
     print "Send: '%s'" % text
     try:
-        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [str("tictactoe"), str(text)]))
+        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), username]))
     except:
         print "something bad happened"
 
@@ -82,7 +83,7 @@ def draw_box(screen, font, char, x, y, color):
     text_rect = render.get_rect()
     text_rect.center = (xs[x], ys[y])
     screen.blit(render, text_rect)
-    
+
 def draw_nim(screen):
     nimfont = pygame.font.SysFont("", 136)
 
@@ -110,15 +111,12 @@ def make_click_boxes():
         x,y = line_to_box(i)
         boxes.append((i, pygame.Rect(xs[x], ys[y], 136, 136)))
     return boxes
-    
+
 def check_click_boxes(click_boxes):
     for index, box in click_boxes:
         if pygame.mouse.get_pressed()[0] and box.collidepoint(pygame.mouse.get_pos()):
             #click_box(index)
             print "Clicked box %s" % index
-
-def throwAwayMessages(m):
-    return
 
 def main():
     erlport.erlang.set_default_message_handler()
@@ -144,7 +142,7 @@ def main():
             draw_nim(screen)
 
         check_click_boxes(click_boxes)
-            
+
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
@@ -163,9 +161,10 @@ def main():
     pygame.display.quit()
     pygame.quit()
 
-def start_game_thread():
+def start_game_thread(usrn):
+    global username
+    username = unicode(usrn)
     global gameThread
-    erlport.erlang.set_message_handler(throwAwayMessages)
     gameThread = threading.Thread(target=main)
     gameThread.start()
     return True

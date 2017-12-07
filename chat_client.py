@@ -1,6 +1,7 @@
 import pygame
 from text_input import TextInput
 import threading
+from time import time as now
 
 import erlport
 from erlport.erlterms import Atom
@@ -13,16 +14,40 @@ chat_log = []
 gameThread = False
 ttt_mode = False
 done = False
-gamestate = [0] * 9
-username = ""
+clock = None
+time_last_mode_switch = 0
 
+game_board = [None] * 9
+my_name = ""
+op_name = ""
+whose_turn = None
+game_started = False
+
+TTT_MAP     = [None, 4,9,2,3,5,7,8,1,6]
+TTT_MAP_REV = [None, 8,3,4,1,5,9,6,7,2]
 COLOR = {
     "chat_box":      ( 40,  40,  40),
     "chat_input":    (128, 128, 128),
     "game_board":    (160, 200, 200),
     "ttt_line":      (100, 100, 100),
     "nim_available": (100, 100, 100),
+    "nim_zero":      (150, 150, 200),
+    "nim_one":       (200, 200, 150),
+    "ttt_available": (100, 100, 100),
+    "ttt_zero":      (150, 150, 200),
+    "ttt_one":       (200, 200, 150),
 }
+
+def start_game_with(opponent_name):
+    global op_name
+    global whose_turn
+    global game_started
+    
+    print "starting game with %s" % opponent_name
+    op_name = opponent_name
+    game_board = [None] * 9
+    whose_turn = my_name
+    game_started = True
 
 erlPID = 0
 def set_erlPID(pid):
@@ -30,23 +55,41 @@ def set_erlPID(pid):
     erlPID = pid
     return True
 
-def receive_chat_default(text):
-    receive_chat(text, pygame.font.SysFont("", 28))
+def receive_chat_default(text, author):
+    receive_chat(text, author, pygame.font.SysFont("", 28))
 
 def send_chat(text, font):
+    global my_name
     print "Send: '%s'" % text
+    if text == "start":
+        start_game_with("frank")
     try:
-        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), username]))
-    except:
-        print "something bad happened"
-
-
+        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
+#    except:
+#        print "something bad happened"
+    finally:
+        pass
 
     add_to_chat_log(text, True, font)
 
-def receive_chat(text, font):
+# Game state is represented by the pair (whose_turn, game_board)
+def load_game_state(gamestate):
+    global whose_turn
+    global game_board
+    whose_turn, game_board = gamestate
+def get_game_state():
+    return (whose_turn, game_board)
+    
+def receive_chat(text, author, font):
+    global my_name
     print "Receive: '%s'" % text
-    add_to_chat_log(text, False, font)
+    
+    display_text = text
+    from_me = True
+    if author != my_name:
+        display_text = "%s: %s" % (author, display_text)
+        from_me = False
+    add_to_chat_log(text, from_me, font)
 
 def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
@@ -89,7 +132,12 @@ def draw_nim(screen):
 
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        draw_box(screen, nimfont, str(i), x, y, COLOR['nim_available'])
+        color = {
+           None:    COLOR['nim_available'],
+           my_name: COLOR['nim_zero'],
+           op_name: COLOR['nim_one'],
+        }[game_board[i-1]]
+        draw_box(screen, nimfont, str(i), x, y, color)
 
 def draw_ttt(screen):
     pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330 + 136*1, 30, 6, 420))
@@ -98,10 +146,22 @@ def draw_ttt(screen):
     pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330, 30 + 136*2, 420, 6))
 
     tttfont = pygame.font.SysFont("", 136)
-    cells = [None, 4,9,2,3,5,7,8,1,6]
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        draw_box(screen, tttfont, str(cells[i]), x, y, COLOR['nim_available'])
+        color = {
+            None:    COLOR['nim_available'],
+            my_name: COLOR['nim_zero'],
+            op_name: COLOR['nim_one'],
+        }[game_board[TTT_MAP[i]-1]]
+        draw_box(screen, tttfont, str(TTT_MAP[i]), x, y, color)
+
+def click_box(index):
+    global my_name
+    global whose_turn
+    if whose_turn == my_name:
+        box_index = TTT_MAP[index+1] - 1 if ttt_mode else index
+        game_board[box_index] = my_name
+        whose_turn = None
 
 def make_click_boxes():
     xs = [336 + 142*i for i in xrange(0,4)]
@@ -115,12 +175,22 @@ def make_click_boxes():
 def check_click_boxes(click_boxes):
     for index, box in click_boxes:
         if pygame.mouse.get_pressed()[0] and box.collidepoint(pygame.mouse.get_pos()):
-            #click_box(index)
             print "Clicked box %s" % index
+            click_box(index-1)
 
-def main():
+def check_click_ttt_mode():
+    global ttt_mode
+    global time_last_mode_switch
+    rect = pygame.Rect(750, 0, 30, 30)
+    if pygame.mouse.get_pressed()[0] and rect.collidepoint(pygame.mouse.get_pos()):
+        if now() - time_last_mode_switch > 0.5:
+            ttt_mode = not ttt_mode
+            time_last_mode_switch = now()
+        
+def main(): 
     erlport.erlang.set_default_message_handler()
     global done
+    global clock
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((780, 480))
@@ -128,7 +198,7 @@ def main():
     myfont = pygame.font.SysFont("", 28)
     clock = pygame.time.Clock()
     click_boxes = make_click_boxes()
-
+    
     done = False
     while not done:
         screen.fill(COLOR['game_board'])
@@ -136,13 +206,15 @@ def main():
         pygame.draw.rect(screen, COLOR['chat_input'], pygame.Rect(0, 440, 300,  50))
         blit_chat_log(screen)
 
-        if ttt_mode:
-            draw_ttt(screen)
-        else:
-            draw_nim(screen)
+        if game_started:
+            if ttt_mode:
+                draw_ttt(screen)
+            else:
+                draw_nim(screen)
 
-        check_click_boxes(click_boxes)
-
+            check_click_boxes(click_boxes)
+            check_click_ttt_mode()
+        
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
@@ -161,9 +233,11 @@ def main():
     pygame.display.quit()
     pygame.quit()
 
-def start_game_thread(usrn):
-    global username
-    username = unicode(usrn)
+def start_game_thread(username):
+    global my_name
+    global whose_turn
+    my_name = unicode(username)
+    whose_turn = my_name
     global gameThread
     gameThread = threading.Thread(target=main)
     gameThread.start()
@@ -175,3 +249,5 @@ def stop_game_thread():
     gameThread.join()
     return True
 
+if __name__ == "__main__":
+    main()

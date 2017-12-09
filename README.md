@@ -31,7 +31,7 @@ The server can be run with the demo by using three terminal sessions as follows:
 #### Session 1: the server
 The server starts running on the current node. It uses the sname "main".
 ```
-./start_server.erl
+$ ./start_server.erl
 ```
 
 #### Sessions 2/3: the clients
@@ -43,7 +43,7 @@ we can supply it as the first argument to start_game/2.
 - `[[USERNAME]]`  should be replaced by different unique, typable strings.
 
 ```
-erl -env ERL_LIBS ../erlport /src/clientserver.erl -sname [[SHORTNAME]]
+$ erl -env ERL_LIBS ../erlport /src/clientserver.erl -sname [[SHORTNAME]]
 
 Eshell:
 1> tictactoegame:start_game("[[USERNAME]]").

@@ -2,16 +2,16 @@
 the-a-team-but-not-in-the-ed-sheeran-way
 
 ## Files included
-- `start_server.erl`
-- `src/`
-  - `nodemanager.erl`    
-  - `clientserver.erl`   
-  - `userserver.erl`     
-  - `tictactoegame.erl`  
-  - `chat.erl`           
-- `Makefile`             
-- `game.py`              
-- `text_input.py`
+- `start_server.erl`     escript for starting server with simple config
+- `src/`                 erlang files
+  - `clientserver.erl`   server to be run by the client
+  - `userserver.erl`     server for clients to connect to, handles auth and name
+  - `nodemanager.erl`    server that can spawn userservers on same node
+  - `tictactoegame.erl`  example bridge between erlang client and python client
+- `Makefile`             instructions for compiling erlang
+- `game.py`              the implementation of the demo game
+- `text_input.py`        pygame text input module
+- `requirements.txt`     python dependencies
 
 Descriptions of these files can be found in the final submission pdf document.
 

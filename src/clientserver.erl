@@ -48,7 +48,6 @@ username_to_serveratom(UserName) ->
 
 init({UserServer, UserName}) ->
     ok = userserver:login(UserServer, UserName),
-    io:format("clientserver: logged in to ~p as ~p~n", [UserServer, UserName]),
     {ok, {UserServer, UserName, #{}, []}}.
 
 handle_call({send_message, RoomAtom, Message}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
@@ -58,7 +57,6 @@ handle_call({send_message, RoomAtom, Message}, _From, {UserServer, UserName, Roo
 handle_call({join_room, RoomAtom}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     ServerAtom = username_to_serveratom(UserName),
     {ok, Node} = userserver:join_room(UserServer, RoomAtom, {ServerAtom, node()}),
-    io:format("clientserver: joined room: ~p on ~p~n", [RoomAtom, Node]),
     {reply, ok, {UserServer, UserName, Rooms#{RoomAtom => Node}, MessageHandlers}};
     
 

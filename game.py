@@ -162,7 +162,6 @@ def send_chat(text, font):
 #
 def receive_chat(text, author, font):
     global my_name
-    print "Receive: '%s'" % text
 
     display_text = text
     from_me = True
@@ -235,7 +234,6 @@ def start_game_with(opponent_name):
     if (opponent_name == my_name or opponent_name == op_name):
         return
 
-    print "starting game with %s" % opponent_name
     op_name = opponent_name
     game_board = [None] * 9
     whose_turn = op_name
@@ -295,7 +293,6 @@ def receive_start(sender, state):
     global game_started
     global op_name
     if op_name == "":
-        print "{0} starting".format(my_name)
         op_name = sender
         game_started = True
         load_game_state(state)
@@ -465,7 +462,6 @@ def make_click_boxes():
 def check_click_boxes(click_boxes):
     for index, box in click_boxes:
         if mouse_clicked_in(box):
-            print "Clicked box %s" % index
             click_box(index-1)
 
 #

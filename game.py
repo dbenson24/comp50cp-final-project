@@ -1,11 +1,12 @@
 ################################################################################
 ##----------------------------------------------------------------------------##
 ##                                                                            ##
-##  game.py       Chris Hinstorff and Derek Benson                            ##
+##           game.py       Chris Hinstorff and Derek Benson                   ##
 ##                                                                            ##
 ##  Contains the logic for controlling and rendering the nim/tictactoe game   ##
 ##                                                                            ##
-##  A description of nim/tictactoe gameplay can be found in the README        ##
+##  A description of nim/tictactoe gameplay can be found in the project       ##
+##  submission PDF.                                                           ##
 ##                                                                            ##
 ##----------------------------------------------------------------------------##
 ################################################################################

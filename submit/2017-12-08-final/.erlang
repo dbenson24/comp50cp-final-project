@@ -1,0 +1,6 @@
+code:load_abs("ebin/userserver").
+code:load_abs("ebin/nodemanager").
+code:load_abs("ebin/clientserver").
+code:load_abs("ebin/msgserver").
+code:load_abs("ebin/tictactoegame").
+

@@ -40,11 +40,34 @@ COLOR = {
     "ttt_one":       (200, 200, 150),
 }
 
+def check_win():
+    winningLines = [
+        [4,9,2],
+        [4,5,6],
+        [4,3,8],
+        [9,5,1],
+        [2,7,6],
+        [3,5,7],
+        [8,1,6],
+        [8,5,2]
+    ]
+    for line in winningLines:
+        a = line[0]-1
+        b = line[1]-1
+        c = line[2]-1
+        if (game_board[a] != None and game_board[a] == game_board[b]
+            and game_board[b] == game_board[c]):
+            return game_board[a]
+    return None
+
 def start_game_with(opponent_name):
     global op_name
     global whose_turn
     global game_started
     global game_board
+
+    if (opponent_name == my_name):
+        return
 
     print "starting game with %s" % opponent_name
     op_name = opponent_name
@@ -70,34 +93,63 @@ def receive_game_over(sender):
     global op_name
     global game_started
     if sender == op_name:
+        add_notification("Your game with {0} ended".format(op_name))
+        winner = check_win()
+        if winner != None:
+            add_notification("{0} won!".format(winner))
         game_started = False
+        op_name = ""
 
 def receive_state(sender, state):
     global op_name
+    global game_started
     if sender == op_name:
-        print "{0} got state: {1}".format(my_name, state)
         load_game_state(state)
+        winner = check_win()
+        if winner != None:
+            add_notification("Your game with {0} ended".format(op_name))
+            add_notification("{0} won!".format(winner))
+            send_game_over(op_name)
+            game_started = False
+            op_name = ""
+
+
 
 def receive_start(sender, state):
     global game_started
     global op_name
-    print "{0} got start: {1} from {2}".format(my_name, state, sender)
     if op_name == "":
         print "{0} starting".format(my_name)
         op_name = sender
         game_started = True
         load_game_state(state)
+    else:
+        send_game_over(sender)
 
 def send_chat(text, font):
     global my_name
-    print "Send: '%s'" % text
+    global op_name
+    global game_started
+    global done
     match = re.search(startRE, text)
     if match:
         start_game_with(match.group(1))
-    try:
-        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
-    finally:
-        pass
+
+    if text == "!quit":
+        if op_name != "":
+            add_notification("Your game with {0} ended".format(op_name))
+            send_game_over(op_name)
+            op_name = ""
+            game_started = False
+        return
+    elif text == "!help":
+        add_notification("@{name} to challenge, !quit to quit game, !exit to exit app")
+    elif text == "!exit":
+        if (op_name != ""):
+            send_game_over(op_name)
+        done = True
+
+    cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
 
     add_to_chat_log(text, True, font)
 
@@ -115,6 +167,9 @@ def send_game_state():
             unicode(op_name), get_game_state()]
     cast(erlPID, (Atom("tictactoegame"), Atom("send_state"), args))
 
+def send_game_over(target):
+    args = [unicode("tictactoe"), my_name, unicode(target)]
+    cast(erlPID, (Atom("tictactoegame"), Atom("send_over"), args))
 
 def receive_chat(text, author, font):
     global my_name
@@ -127,9 +182,12 @@ def receive_chat(text, author, font):
         from_me = False
     add_to_chat_log(display_text, from_me, font)
 
-def add_to_chat_log(text, outbound, font):
+def add_to_chat_log(text, outbound, font=pygame.font.SysFont("", 28)):
     render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
+
+def add_notification(text):
+    add_to_chat_log("> {0}".format(text), False)
 
 def blit_chat_log(screen):
     i = 0
@@ -168,11 +226,13 @@ def draw_nim(screen):
 
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        color = {
-           None:    COLOR['nim_available'],
-           my_name: COLOR['nim_zero'],
-           op_name: COLOR['nim_one'],
-        }[game_board[i-1]]
+        name = game_board[i-1]
+        if None == name:
+            color = COLOR['nim_available']
+        elif my_name == name:
+            color = COLOR['nim_zero']
+        else:
+            color = COLOR['nim_one']
         draw_box(screen, nimfont, str(i), x, y, color)
 
 def draw_ttt(screen):
@@ -184,11 +244,13 @@ def draw_ttt(screen):
     tttfont = pygame.font.SysFont("", 136)
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        color = {
-            None:    COLOR['nim_available'],
-            my_name: COLOR['nim_zero'],
-            op_name: COLOR['nim_one'],
-        }[game_board[TTT_MAP[i]-1]]
+        name = game_board[TTT_MAP[i]-1]
+        if None == name:
+            color = COLOR['nim_available']
+        elif my_name == name:
+            color = COLOR['nim_zero']
+        else:
+            color = COLOR['nim_one']
         draw_box(screen, tttfont, str(TTT_MAP[i]), x, y, color)
 
 def click_box(index):

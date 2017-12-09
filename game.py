@@ -44,6 +44,7 @@ COLOR = {
     "ttt_available": (100, 100, 100),
     "ttt_zero":      (150, 150, 200),
     "ttt_one":       (200, 200, 150),
+    "change_mode":   (230, 230, 250),
 }
 MESSAGES_ON_SCREEN = 6
 startRE = r"@(\S+)"
@@ -552,11 +553,13 @@ def main():
     while not done:
         # draw background
         screen.fill(COLOR['game_board'])
-        box_rect   = pygame.Rect(0,   0, 300, 480)
-        input_rect = pygame.Rect(0, 440, 300,  50)
-        pygame.draw.rect(screen, COLOR['chat_box'],   box_rect)
-        pygame.draw.rect(screen, COLOR['chat_input'], input_rect)
-
+        box_rect    = pygame.Rect(0,   0, 300, 480)
+        input_rect  = pygame.Rect(0, 440, 300,  50)
+        change_mode = pygame.Rect(750, 0,  30,  30)
+        pygame.draw.rect(screen, COLOR['chat_box'],    box_rect)
+        pygame.draw.rect(screen, COLOR['chat_input'],  input_rect)
+        pygame.draw.rect(screen, COLOR['change_mode'], change_mode)
+        
         # draw chat elements
         blit_chat_log(screen)
 

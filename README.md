@@ -39,8 +39,8 @@ We'll spawn two clients on the local node that will communicate through
 the server. If we wish to communicate to a server on a different node,
 we can supply it as the first argument to start_game/2.
 
-- [[SHORTNAME]] should be replaced by different unique erlang snames.
-- [[USERNAME]]  should be replaced by different unique, typable strings.
+- `[[SHORTNAME]]` should be replaced by different unique erlang snames.
+- `[[USERNAME]]`  should be replaced by different unique, typable strings.
 
 ```
 erl -env ERL_LIBS ../erlport /src/clientserver.erl -sname [[SHORTNAME]]

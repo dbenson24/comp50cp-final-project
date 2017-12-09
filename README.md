@@ -8,6 +8,7 @@ the-a-team-but-not-in-the-ed-sheeran-way
   - `userserver.erl`     server for clients to connect to, handles auth and name
   - `nodemanager.erl`    server that can spawn userservers on same node
   - `tictactoegame.erl`  example bridge between erlang client and python client
+- `.erlang`              erlang configuration
 - `Makefile`             instructions for compiling erlang
 - `game.py`              the implementation of the demo game
 - `text_input.py`        pygame text input module

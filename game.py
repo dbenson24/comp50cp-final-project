@@ -185,7 +185,21 @@ def add_to_chat_log(text, outbound, font):
 ################################################################################
 #  Game state related functions                                                #
 ################################################################################
+#
+# gamestate is represented by the pair (whose_turn, game_board)
+#  - whose_turn: [my_name|opponent_name]
+#  - game_board: 9-element list with elements [None|my_name|opponent_name]
+#
+# Each element of the pair is stored as a separate global variable in python.
+# It is constructed as a pair only when interfacing with erlang
+#
 
+#
+# start_game_with attempts to start a game with an opponent of a specified name
+#
+# Params:
+#  - opponent_name  the name of the desired opponent
+#
 def start_game_with(opponent_name):
     global op_name
     global whose_turn
@@ -201,18 +215,41 @@ def start_game_with(opponent_name):
             unicode(opponent_name), get_game_state()]
     cast(erlPID, (Atom("tictactoegame"), Atom("request_start"), args))
 
+#
+# receive_game_over is meant to be called from erlang when the opponent ends
+#                   the game on their turn
+#                
+# Params:
+#  - sender  the username of the person who sent the game over signal
+#
 def receive_game_over(sender):
     global op_name
     global game_started
     if sender == op_name:
         game_started = False
 
+#
+# receive_state is meant to be called from erlang when the opponent makes
+#               a move. The local board is updated with the new game state
+#                
+# Params:
+#  - sender  the username of the person who sent the game over signal
+#  - state   the updated gamestate
+#        
 def receive_state(sender, state):
     global op_name
     if sender == op_name:
         print "{0} got state: {1}".format(my_name, state)
         load_game_state(state)
 
+#
+# receive_start is meant to be called from erlang when another user issues
+#               a challenge to begin a game
+#
+# Params:
+#  - sender  the user issuing the challenge
+#  - state   the initial game state
+#
 def receive_start(sender, state):
     global game_started
     global op_name
@@ -223,15 +260,30 @@ def receive_start(sender, state):
         game_started = True
         load_game_state(state)
 
-# Game state is represented by the pair (whose_turn, game_board)
+#
+# load_game_state can be called from erlang to set the local gamestate
+#                 to a specified value
+#
+# Params:
+#  - gamestate  the desired gamestate
+#
 def load_game_state(gamestate):
     global whose_turn
     global game_board
     whose_turn, game_board = gamestate
 
+#
+# get_game_state can be called from erlang to get the local gamestate
+#
+# Return:
+#  - gamestate  the gamestate
+#
 def get_game_state():
     return (str(whose_turn), game_board)
 
+#
+# send_game_state sends the local gamestate to the erlang process
+#
 def send_game_state():
     args = [unicode("tictactoe"), my_name,
             unicode(op_name), get_game_state()]

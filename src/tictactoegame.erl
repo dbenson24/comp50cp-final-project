@@ -31,7 +31,6 @@ send_over(Room, UserName, Target) ->
     ok = clientserver:send_message(Room, Message, UserName),
     ok.
 
-% python:call(P, 'game', 'receive_chat_default', [<<Message>>])
 start_game(UserName) ->
     start_game(default_main(), UserName).
 
@@ -44,7 +43,6 @@ start_game(UserServerNode, UserName) ->
     true = python:call(P, 'game', 'start_game_thread', [list_to_binary(UserName)]),
     {ok, _Handler} = clientserver:register_handler(
         fun (_Room, FromUser, Message) ->
-            io:format("message to ~p, ~p~n", [UserName, Message]),
             case Message of 
                 {tictactoe, UserName, Action} ->
                     case Action of 

@@ -110,7 +110,7 @@ def mouse_clicked_in(rectangle):
 
 #
 # send_chat sends a message through the server and adds it to the local chat
-#           log. Also checks for game start commands
+#           log. Also checks for typed control commands
 #
 # Params:
 #  - text  the message to send
@@ -118,16 +118,28 @@ def mouse_clicked_in(rectangle):
 #
 def send_chat(text, font):
     global my_name
-    print "Send: '%s'" % text
+    global op_name
+    global game_started
+    global done
     match = re.search(startRE, text)
     if match:
         start_game_with(match.group(1))
-    try:
-        cast(erlPID, (Atom("clientserver"),
-                      Atom("send_message"),
-                      [unicode("tictactoe"), unicode(text), my_name]))
-    finally:
-        pass
+
+    if text == "!quit":
+        if op_name != "":
+            add_notification("Your game with {0} ended".format(op_name))
+            send_game_over(op_name)
+            op_name = ""
+            game_started = False
+        return
+    elif text == "!help":
+        add_notification("@{name} to challenge, !quit to quit game, !exit to exit app")
+    elif text == "!exit":
+        if (op_name != ""):
+            send_game_over(op_name)
+        done = True
+
+    cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
 
     add_to_chat_log(text, True, font)
 
@@ -181,6 +193,16 @@ def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
 
+#
+# add_notification adds a different kind of text to the chat box that is meant
+#                  for messages to the user from the game
+#
+# Params:
+#  - text  the text of the notification
+#
+def add_notification(text):
+    add_to_chat_log("> {0}".format(text), False, pygame.font.SysFont("", 28))
+
 
 ################################################################################
 #  Game state related functions                                                #
@@ -206,6 +228,9 @@ def start_game_with(opponent_name):
     global game_started
     global game_board
 
+    if (opponent_name == my_name):
+        return
+
     print "starting game with %s" % opponent_name
     op_name = opponent_name
     game_board = [None] * 9
@@ -226,7 +251,12 @@ def receive_game_over(sender):
     global op_name
     global game_started
     if sender == op_name:
+        add_notification("Your game with {0} ended".format(op_name))
+        winner = check_win()
+        if winner != None:
+            add_notification("{0} won!".format(winner))
         game_started = False
+        op_name = ""
 
 #
 # receive_state is meant to be called from erlang when the opponent makes
@@ -238,10 +268,17 @@ def receive_game_over(sender):
 #        
 def receive_state(sender, state):
     global op_name
+    global game_started
     if sender == op_name:
-        print "{0} got state: {1}".format(my_name, state)
         load_game_state(state)
-
+        winner = check_win()
+        if winner != None:
+            add_notification("Your game with {0} ended".format(op_name))
+            add_notification("{0} won!".format(winner))
+            send_game_over(op_name)
+            game_started = False
+            op_name = ""
+            
 #
 # receive_start is meant to be called from erlang when another user issues
 #               a challenge to begin a game
@@ -253,12 +290,13 @@ def receive_state(sender, state):
 def receive_start(sender, state):
     global game_started
     global op_name
-    print "{0} got start: {1} from {2}".format(my_name, state, sender)
     if op_name == "":
         print "{0} starting".format(my_name)
         op_name = sender
         game_started = True
         load_game_state(state)
+    else:
+        send_game_over(sender)
 
 #
 # load_game_state can be called from erlang to set the local gamestate
@@ -280,6 +318,13 @@ def load_game_state(gamestate):
 #
 def get_game_state():
     return (str(whose_turn), game_board)
+
+#
+# send_game_over sends a game over signal to the opponent through erlang
+#
+def send_game_over(target):
+    args = [unicode("tictactoe"), my_name, unicode(target)]
+    cast(erlPID, (Atom("tictactoegame"), Atom("send_over"), args))
 
 #
 # send_game_state sends the local gamestate to the erlang process
@@ -354,11 +399,13 @@ def draw_nim(screen):
 
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        color = {
-           None:    COLOR['nim_available'],
-           my_name: COLOR['nim_zero'],
-           op_name: COLOR['nim_one'],
-        }[game_board[i-1]]
+        name = game_board[i-1]
+        if None == name:
+            color = COLOR['nim_available']
+        elif my_name == name:
+            color = COLOR['nim_zero']
+        else:
+            color = COLOR['nim_one']
         draw_box(screen, nimfont, str(i), x, y, color)
 
 #
@@ -378,11 +425,13 @@ def draw_ttt(screen):
     tttfont = pygame.font.SysFont("", 136)
     for i in xrange(1, 9+1):
         x, y = line_to_box(i)
-        color = {
-            None:    COLOR['nim_available'],
-            my_name: COLOR['nim_zero'],
-            op_name: COLOR['nim_one'],
-        }[game_board[TTT_MAP[i]-1]]
+        name = game_board[TTT_MAP[i]-1]
+        if None == name:
+            color = COLOR['nim_available']
+        elif my_name == name:
+            color = COLOR['nim_zero']
+        else:
+            color = COLOR['nim_one']
         draw_box(screen, tttfont, str(TTT_MAP[i]), x, y, color)
 
         
@@ -446,7 +495,32 @@ def click_box(index):
         game_board[box_index] = str(my_name)
         whose_turn = op_name
         send_game_state()
-    
+
+#
+# check_win checks to see if a player has won the game
+#
+# Return:
+#  - the name of the winner or None
+#
+def check_win():
+    winningLines = [
+        [4,9,2],
+        [4,5,6],
+        [4,3,8],
+        [9,5,1],
+        [2,7,6],
+        [3,5,7],
+        [8,1,6],
+        [8,5,2]
+    ]
+    for line in winningLines:
+        a = line[0]-1
+        b = line[1]-1
+        c = line[2]-1
+        if (game_board[a] != None and game_board[a] == game_board[b]
+            and game_board[b] == game_board[c]):
+            return game_board[a]
+    return None
 
 ################################################################################
 #  Primary pygame function                                                     #

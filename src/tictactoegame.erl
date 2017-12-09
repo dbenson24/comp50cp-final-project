@@ -1,10 +1,10 @@
 -module(tictactoegame).
 
--export([start_game/1, start_game/2, stop_game/2, caller/0, test_receive/1, send_state/4, request_start/4, cancel/3]).
+-export([start_game/1, start_game/2, stop_game/2, caller/1, test_receive/1, send_state/4, request_start/4, send_over/3]).
 
-caller() ->
-    receive {Module, Func, Args} -> apply(Module, Func, Args), caller();
-             done -> ok end.
+caller(UserName) ->
+    receive {Module, Func, Args} -> apply(Module, Func, Args), caller(UserName);
+             done -> clientserver:stop(UserName) end.
 
 default_main() ->
     {_, HostName} = lists:splitwith(fun(C) -> C /= $@ end, atom_to_list(node())),
@@ -26,7 +26,7 @@ request_start(Room, UserName, Target, State) ->
     ok = clientserver:send_message(Room, Message, UserName),
     ok.
 
-cancel(Room, UserName, Target) ->
+send_over(Room, UserName, Target) ->
     Message = {tictactoe, Target, over},
     ok = clientserver:send_message(Room, Message, UserName),
     ok.
@@ -39,7 +39,7 @@ start_game(UserServerNode, UserName) ->
     {ok, _} = clientserver:start_link(UserServerNode, UserName),
     ok = clientserver:join_room("tictactoe", UserName),
     {ok, P} = python:start(),
-    CallerPid = spawn(?MODULE, caller, []),
+    CallerPid = spawn(?MODULE, caller, [UserName]),
     true = python:call(P, 'game', 'set_erlPID', [CallerPid]), 
     true = python:call(P, 'game', 'start_game_thread', [list_to_binary(UserName)]),
     {ok, _Handler} = clientserver:register_handler(

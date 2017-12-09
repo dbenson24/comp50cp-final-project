@@ -1,5 +1,6 @@
 ################################################################################
 ##----------------------------------------------------------------------------##
+##                                                                            ##
 ##  game.py       Chris Hinstorff and Derek Benson                            ##
 ##                                                                            ##
 ##  Contains the logic for controlling and rendering the nim/tictactoe game   ##
@@ -87,11 +88,34 @@ game_started = False
 def line_to_box(i):
     return ((i-1)%3, (i-1)//3)
 
+#
+# mouse_clicked_in detects whether or not the mouse is currently being
+#                  clicked in a specified rectangle
+#
+# Params:
+#  - rectangle  a pygame Rect specifying a rectangle of pixels
+#
+# Return:
+#  - whether or not the mouse was clicked there [True|False]
+#
+def mouse_clicked_in(rectangle):
+    mouse_clicked      = pygame.mouse.get_pressed()[0]
+    mouse_in_rectangle = rectangle.collidepoint(pygame.mouse.get_pos())
+    return mouse_clicked and mouse_in_rectangle
+
 
 ################################################################################
 #  Chat-related functions                                                      #
 ################################################################################
 
+#
+# send_chat sends a message through the server and adds it to the local chat
+#           log. Also checks for game start commands
+#
+# Params:
+#  - text  the message to send
+#  - font  the pygame font with which to render the text in the chat log
+#
 def send_chat(text, font):
     global my_name
     print "Send: '%s'" % text
@@ -99,12 +123,27 @@ def send_chat(text, font):
     if match:
         start_game_with(match.group(1))
     try:
-        cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
+        cast(erlPID, (Atom("clientserver"),
+                      Atom("send_message"),
+                      [unicode("tictactoe"), unicode(text), my_name]))
     finally:
         pass
 
     add_to_chat_log(text, True, font)
 
+#
+# receive_chat is called by erlang when a message is received. The message
+#              text is added to the chat log.
+#
+# NOTE: receive_chat_default is recommended for use with erlang instead
+#       of this function, since you generally will not want to care about
+#       how the message is rendered when calling from erlang
+#
+# Params:
+#  - text    the message to send
+#  - author  the name of the person who sent the message
+#  - font    the pygame font with which to render the text in the chat log
+#
 def receive_chat(text, author, font):
     global my_name
     print "Receive: '%s'" % text
@@ -116,11 +155,28 @@ def receive_chat(text, author, font):
         from_me = False
     add_to_chat_log(display_text, from_me, font)
 
+#
+# receive_chat_default is called by erlang when a message is received. The
+#                      message text is added to the chat log
+#
+# Params:
+#  - text    the message to send
+#  - author  the name of the person who sent the message
+#
 def receive_chat_default(text, author):
     global my_name
     if author != my_name:
         receive_chat(text, author, pygame.font.SysFont("", 28))
     
+#
+# add_to_chat_log renders (but does not display) a chat message text. The
+#                 rendering is saved and will be displayed on the screen later
+#
+# Params:
+#  - text      the message to send
+#  - outbound  whether or not the text was written by another user [True|False]
+#  - font      the pygame font with which to render the text
+#
 def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
@@ -261,10 +317,11 @@ def draw_nim(screen):
 #  - screen  the pygame screen to draw on
 #
 def draw_ttt(screen):
-    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330 + 136*1, 30, 6, 420))
-    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330 + 136*2, 30, 6, 420))
-    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330, 30 + 136*1, 420, 6))
-    pygame.draw.rect(screen, COLOR['ttt_line'], pygame.Rect(330, 30 + 136*2, 420, 6))
+    line_color = COLOR['ttt_line']
+    pygame.draw.rect(screen, line_color, pygame.Rect(330 + 136*1, 30, 6, 420))
+    pygame.draw.rect(screen, line_color, pygame.Rect(330 + 136*2, 30, 6, 420))
+    pygame.draw.rect(screen, line_color, pygame.Rect(330, 30 + 136*1, 420, 6))
+    pygame.draw.rect(screen, line_color, pygame.Rect(330, 30 + 136*2, 420, 6))
 
     tttfont = pygame.font.SysFont("", 136)
     for i in xrange(1, 9+1):
@@ -287,15 +344,6 @@ def draw_ttt(screen):
 # Return:
 #  - boxes  a list of 9 click boxes
 #
-def click_box(index):
-    global my_name
-    global whose_turn
-    if whose_turn == my_name:
-        box_index = TTT_MAP[index+1] - 1 if ttt_mode else index
-        game_board[box_index] = str(my_name)
-        whose_turn = op_name
-        send_game_state()
-
 def make_click_boxes():
     xs = [336 + 142*i for i in xrange(0,4)]
     ys = [ 36 + 142*i for i in xrange(0,4)]
@@ -311,7 +359,7 @@ def make_click_boxes():
 #
 def check_click_boxes(click_boxes):
     for index, box in click_boxes:
-        if pygame.mouse.get_pressed()[0] and box.collidepoint(pygame.mouse.get_pos()):
+        if mouse_clicked_in(box):
             print "Clicked box %s" % index
             click_box(index-1)
 
@@ -322,7 +370,7 @@ def check_click_ttt_mode():
     global ttt_mode
     global time_last_mode_switch
     rect = pygame.Rect(750, 0, 30, 30)
-    if pygame.mouse.get_pressed()[0] and rect.collidepoint(pygame.mouse.get_pos()):
+    if mouse_clicked_in(rect):
         if now() - time_last_mode_switch > 0.5:
             ttt_mode = not ttt_mode
             time_last_mode_switch = now()
@@ -343,9 +391,10 @@ def click_box(index):
     global whose_turn
     if whose_turn == my_name:
         box_index = TTT_MAP[index+1] - 1 if ttt_mode else index
-        game_board[box_index] = my_name
-        whose_turn = None
-
+        game_board[box_index] = str(my_name)
+        whose_turn = op_name
+        send_game_state()
+    
 
 ################################################################################
 #  Primary pygame function                                                     #
@@ -374,8 +423,10 @@ def main():
     while not done:
         # draw background
         screen.fill(COLOR['game_board'])
-        pygame.draw.rect(screen, COLOR['chat_box'],   pygame.Rect(0,   0, 300, 480))
-        pygame.draw.rect(screen, COLOR['chat_input'], pygame.Rect(0, 440, 300,  50))
+        box_rect   = pygame.Rect(0,   0, 300, 480)
+        input_rect = pygame.Rect(0, 440, 300,  50)
+        pygame.draw.rect(screen, COLOR['chat_box'],   box_rect)
+        pygame.draw.rect(screen, COLOR['chat_input'], input_rect)
 
         # draw chat elements
         blit_chat_log(screen)

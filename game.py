@@ -18,6 +18,7 @@ import pygame
 from text_input import TextInput
 import threading
 from time import time as now
+import re
 
 import erlport
 from erlport.erlterms import Atom
@@ -43,6 +44,7 @@ COLOR = {
     "ttt_one":       (200, 200, 150),
 }
 MESSAGES_ON_SCREEN = 6
+startRE = r"@(\S+)"
 
 
 ################################################################################
@@ -90,46 +92,35 @@ def line_to_box(i):
 #  Chat-related functions                                                      #
 ################################################################################
 
-#
-#
-#
-def receive_chat_default(text, author):
-    receive_chat(text, author, pygame.font.SysFont("", 28))
-
-#
-#
-#
 def send_chat(text, font):
     global my_name
     print "Send: '%s'" % text
-    if text == "start":
-        start_game_with("frank")
+    match = re.search(startRE, text)
+    if match:
+        start_game_with(match.group(1))
     try:
         cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
-#    except:
-#        print "something bad happened"
     finally:
         pass
 
     add_to_chat_log(text, True, font)
 
-#
-#
-#
 def receive_chat(text, author, font):
     global my_name
     print "Receive: '%s'" % text
-    
+
     display_text = text
     from_me = True
     if author != my_name:
         display_text = "%s: %s" % (author, display_text)
         from_me = False
-    add_to_chat_log(text, from_me, font)
+    add_to_chat_log(display_text, from_me, font)
 
-#
-#
-#
+def receive_chat_default(text, author):
+    global my_name
+    if author != my_name:
+        receive_chat(text, author, pygame.font.SysFont("", 28))
+    
 def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
     chat_log.append(render)
@@ -139,30 +130,56 @@ def add_to_chat_log(text, outbound, font):
 #  Game state related functions                                                #
 ################################################################################
 
-#
-#
-#
 def start_game_with(opponent_name):
     global op_name
     global whose_turn
     global game_started
-    
+    global game_board
+
     print "starting game with %s" % opponent_name
     op_name = opponent_name
     game_board = [None] * 9
-    whose_turn = my_name
+    whose_turn = op_name
     game_started = True
+    args = [unicode("tictactoe"), my_name,
+            unicode(opponent_name), get_game_state()]
+    cast(erlPID, (Atom("tictactoegame"), Atom("request_start"), args))
+
+def receive_game_over(sender):
+    global op_name
+    global game_started
+    if sender == op_name:
+        game_started = False
+
+def receive_state(sender, state):
+    global op_name
+    if sender == op_name:
+        print "{0} got state: {1}".format(my_name, state)
+        load_game_state(state)
+
+def receive_start(sender, state):
+    global game_started
+    global op_name
+    print "{0} got start: {1} from {2}".format(my_name, state, sender)
+    if op_name == "":
+        print "{0} starting".format(my_name)
+        op_name = sender
+        game_started = True
+        load_game_state(state)
 
 # Game state is represented by the pair (whose_turn, game_board)
-#
-#
-#
 def load_game_state(gamestate):
     global whose_turn
     global game_board
     whose_turn, game_board = gamestate
+
 def get_game_state():
-    return (whose_turn, game_board)
+    return (str(whose_turn), game_board)
+
+def send_game_state():
+    args = [unicode("tictactoe"), my_name,
+            unicode(op_name), get_game_state()]
+    cast(erlPID, (Atom("tictactoegame"), Atom("send_state"), args))
 
 
 ################################################################################
@@ -270,6 +287,15 @@ def draw_ttt(screen):
 # Return:
 #  - boxes  a list of 9 click boxes
 #
+def click_box(index):
+    global my_name
+    global whose_turn
+    if whose_turn == my_name:
+        box_index = TTT_MAP[index+1] - 1 if ttt_mode else index
+        game_board[box_index] = str(my_name)
+        whose_turn = op_name
+        send_game_state()
+
 def make_click_boxes():
     xs = [336 + 142*i for i in xrange(0,4)]
     ys = [ 36 + 142*i for i in xrange(0,4)]

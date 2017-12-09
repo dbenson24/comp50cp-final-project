@@ -53,7 +53,7 @@ init({UserServer, UserName}) ->
 
 handle_call({send_message, RoomAtom, Message}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     #{RoomAtom := Node} = Rooms,
-    {reply, chat:message({RoomAtom, Node}, UserName, Message), {UserServer, UserName, Rooms, MessageHandlers}};
+    {reply, msgserver:message({RoomAtom, Node}, UserName, Message), {UserServer, UserName, Rooms, MessageHandlers}};
 
 handle_call({join_room, RoomAtom}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     ServerAtom = username_to_serveratom(UserName),

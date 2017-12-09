@@ -1,4 +1,4 @@
-all: ebin ebin/chat.beam ebin/userserver.beam ebin/nodemanager.beam ebin/clientserver.beam ebin/tictactoegame.beam
+all: ebin ebin/msgserver.beam ebin/userserver.beam ebin/nodemanager.beam ebin/clientserver.beam ebin/tictactoegame.beam
 
 ebin:
 	mkdir ebin

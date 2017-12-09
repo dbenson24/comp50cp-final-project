@@ -21,16 +21,13 @@ join_room(Room, UserName) ->
     ServerAtom = username_to_serveratom(UserName),
     gen_server:call({ServerAtom, node()}, {join_room, list_to_atom(Room)}).
 
-send_message([R | Oom], [M | Essage], UserName) ->
+send_message([R | Oom], Message, UserName) ->
     ServerAtom = username_to_serveratom(UserName),
-    io:format("send_message list~n"),
     Room = list_to_atom([R | Oom]),
-    Message = [M | Essage],
     gen_server:call({ServerAtom, node()}, {send_message, Room, Message});
 
 send_message(<<R,Oom/binary>>, <<M,Essage/binary>>, UserName) ->
     ServerAtom = username_to_serveratom(UserName),
-    io:format("send_message binary~n"),
     Room = list_to_atom(binary_to_list(<<R,Oom/binary>>)),
     Message = binary_to_list(<<M,Essage/binary>>),
     gen_server:call({ServerAtom, node()}, {send_message, Room, Message}).
@@ -56,7 +53,7 @@ init({UserServer, UserName}) ->
 
 handle_call({send_message, RoomAtom, Message}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     #{RoomAtom := Node} = Rooms,
-    {reply, chat:message({RoomAtom, Node}, Message), {UserServer, UserName, Rooms, MessageHandlers}};
+    {reply, chat:message({RoomAtom, Node}, UserName, Message), {UserServer, UserName, Rooms, MessageHandlers}};
 
 handle_call({join_room, RoomAtom}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     ServerAtom = username_to_serveratom(UserName),
@@ -71,10 +68,9 @@ handle_call({register_handler, Handler}, _From, {UserServer, UserName, Rooms, Me
 handle_call({unregister_handler, Handler}, _From, {UserServer, UserName, Rooms, MessageHandlers}) ->
     {reply, ok, {UserServer, UserName, Rooms, lists:delete(Handler, MessageHandlers)}}.
 
-handle_cast({message, Room, Message}, {UserServer, UserName, Rooms, MessageHandlers}) ->
+handle_cast({message, Room, FromUser, Message}, {UserServer, UserName, Rooms, MessageHandlers}) ->
     % Broadcast Message to the handlers
-    io:format("clientserver: Message in ~p: ~p~n", [Room, Message]),
-    lists:map(fun (F) -> F(Message) end, MessageHandlers),
+    lists:map(fun (F) -> F(Room, FromUser, Message) end, MessageHandlers),
     {noreply, {UserServer, UserName, Rooms, MessageHandlers}}.
 
 

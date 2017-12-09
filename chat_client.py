@@ -6,7 +6,9 @@ from time import time as now
 import erlport
 from erlport.erlterms import Atom
 from erlport.erlang import cast
+import re
 
+startRE = r"@(\S+)"
 
 MESSAGES_ON_SCREEN = 6
 
@@ -42,12 +44,16 @@ def start_game_with(opponent_name):
     global op_name
     global whose_turn
     global game_started
-    
+    global game_board
+
     print "starting game with %s" % opponent_name
     op_name = opponent_name
     game_board = [None] * 9
-    whose_turn = my_name
+    whose_turn = op_name
     game_started = True
+    args = [unicode("tictactoe"), my_name,
+            unicode(opponent_name), get_game_state()]
+    cast(erlPID, (Atom("tictactoegame"), Atom("request_start"), args))
 
 erlPID = 0
 def set_erlPID(pid):
@@ -56,17 +62,40 @@ def set_erlPID(pid):
     return True
 
 def receive_chat_default(text, author):
-    receive_chat(text, author, pygame.font.SysFont("", 28))
+    global my_name
+    if author != my_name:
+        receive_chat(text, author, pygame.font.SysFont("", 28))
+
+def receive_game_over(sender):
+    global op_name
+    global game_started
+    if sender == op_name:
+        game_started = False
+
+def receive_state(sender, state):
+    global op_name
+    if sender == op_name:
+        print "{0} got state: {1}".format(my_name, state)
+        load_game_state(state)
+
+def receive_start(sender, state):
+    global game_started
+    global op_name
+    print "{0} got start: {1} from {2}".format(my_name, state, sender)
+    if op_name == "":
+        print "{0} starting".format(my_name)
+        op_name = sender
+        game_started = True
+        load_game_state(state)
 
 def send_chat(text, font):
     global my_name
     print "Send: '%s'" % text
-    if text == "start":
-        start_game_with("frank")
+    match = re.search(startRE, text)
+    if match:
+        start_game_with(match.group(1))
     try:
         cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
-#    except:
-#        print "something bad happened"
     finally:
         pass
 
@@ -77,19 +106,26 @@ def load_game_state(gamestate):
     global whose_turn
     global game_board
     whose_turn, game_board = gamestate
+
 def get_game_state():
-    return (whose_turn, game_board)
-    
+    return (str(whose_turn), game_board)
+
+def send_game_state():
+    args = [unicode("tictactoe"), my_name,
+            unicode(op_name), get_game_state()]
+    cast(erlPID, (Atom("tictactoegame"), Atom("send_state"), args))
+
+
 def receive_chat(text, author, font):
     global my_name
     print "Receive: '%s'" % text
-    
+
     display_text = text
     from_me = True
     if author != my_name:
         display_text = "%s: %s" % (author, display_text)
         from_me = False
-    add_to_chat_log(text, from_me, font)
+    add_to_chat_log(display_text, from_me, font)
 
 def add_to_chat_log(text, outbound, font):
     render = (outbound, font.render(text, False, (240, 240, 240)))
@@ -160,8 +196,9 @@ def click_box(index):
     global whose_turn
     if whose_turn == my_name:
         box_index = TTT_MAP[index+1] - 1 if ttt_mode else index
-        game_board[box_index] = my_name
-        whose_turn = None
+        game_board[box_index] = str(my_name)
+        whose_turn = op_name
+        send_game_state()
 
 def make_click_boxes():
     xs = [336 + 142*i for i in xrange(0,4)]
@@ -186,8 +223,8 @@ def check_click_ttt_mode():
         if now() - time_last_mode_switch > 0.5:
             ttt_mode = not ttt_mode
             time_last_mode_switch = now()
-        
-def main(): 
+
+def main():
     erlport.erlang.set_default_message_handler()
     global done
     global clock
@@ -198,7 +235,7 @@ def main():
     myfont = pygame.font.SysFont("", 28)
     clock = pygame.time.Clock()
     click_boxes = make_click_boxes()
-    
+
     done = False
     while not done:
         screen.fill(COLOR['game_board'])
@@ -214,7 +251,7 @@ def main():
 
             check_click_boxes(click_boxes)
             check_click_ttt_mode()
-        
+
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:

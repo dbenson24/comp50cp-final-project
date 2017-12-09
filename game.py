@@ -123,7 +123,7 @@ def send_chat(text, font):
     global game_started
     global done
     match = re.search(startRE, text)
-    if match:
+    if match and op_name == "":
         start_game_with(match.group(1))
 
     if text == "!quit":
@@ -135,10 +135,12 @@ def send_chat(text, font):
         return
     elif text == "!help":
         add_notification("@{name} to challenge, !quit to quit game, !exit to exit app")
+        return
     elif text == "!exit":
         if (op_name != ""):
             send_game_over(op_name)
         done = True
+        return
 
     cast(erlPID, (Atom("clientserver"), Atom("send_message"), [unicode("tictactoe"), unicode(text), my_name]))
 
@@ -180,7 +182,7 @@ def receive_chat_default(text, author):
     global my_name
     if author != my_name:
         receive_chat(text, author, pygame.font.SysFont("", 28))
-    
+
 #
 # add_to_chat_log renders (but does not display) a chat message text. The
 #                 rendering is saved and will be displayed on the screen later
@@ -229,7 +231,7 @@ def start_game_with(opponent_name):
     global game_started
     global game_board
 
-    if (opponent_name == my_name):
+    if (opponent_name == my_name or opponent_name == op_name):
         return
 
     print "starting game with %s" % opponent_name
@@ -244,7 +246,7 @@ def start_game_with(opponent_name):
 #
 # receive_game_over is meant to be called from erlang when the opponent ends
 #                   the game on their turn
-#                
+#
 # Params:
 #  - sender  the username of the person who sent the game over signal
 #
@@ -262,11 +264,11 @@ def receive_game_over(sender):
 #
 # receive_state is meant to be called from erlang when the opponent makes
 #               a move. The local board is updated with the new game state
-#                
+#
 # Params:
 #  - sender  the username of the person who sent the game over signal
 #  - state   the updated gamestate
-#        
+#
 def receive_state(sender, state):
     global op_name
     global game_started
@@ -279,7 +281,7 @@ def receive_state(sender, state):
             send_game_over(op_name)
             game_started = False
             op_name = ""
-            
+
 #
 # receive_start is meant to be called from erlang when another user issues
 #               a challenge to begin a game
@@ -435,7 +437,7 @@ def draw_ttt(screen):
             color = COLOR['nim_one']
         draw_box(screen, tttfont, str(TTT_MAP[i]), x, y, color)
 
-        
+
 ################################################################################
 #  Game input related functions                                                #
 ################################################################################
@@ -584,7 +586,7 @@ def main():
         # finish handling frame
         pygame.display.update()
         clock.tick(30)
-        
+
     cast(erlPID, Atom("done"))
     pygame.display.quit()
     pygame.quit()
@@ -606,9 +608,9 @@ def set_erlPID(pid):
     global erlPID
     erlPID = pid
     return True
-    
+
 #
-# start_game_thread spawns a thread to run the game. 
+# start_game_thread spawns a thread to run the game.
 #
 # This function is meant to be called from erlang
 #

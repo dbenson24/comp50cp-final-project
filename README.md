@@ -2,16 +2,18 @@
 the-a-team-but-not-in-the-ed-sheeran-way
 
 ## Files included
-- `start_server.erl`      escript to a server on main@[LOCAL_NODE]
+- `start_server.erl`
 - `src/`
-  - `nodemanager.erl`     <<<TODO>>>
-  - `clientserver.erl`    <<<TODO>>>
-  - `userserver.erl`      <<<TODO>>>
-  - `tictactoegame.erl`   <<<TODO>>>
-  - `chat.erl`            <<<TODO>>>
-- `Makefile`              compiles the erlang files
-- `game.py`               contains the demo game engine built with pygame
-- `text_input.py`         contains text manipulation (attributed in file header)
+  - `nodemanager.erl`    
+  - `clientserver.erl`   
+  - `userserver.erl`     
+  - `tictactoegame.erl`  
+  - `chat.erl`           
+- `Makefile`             
+- `game.py`              
+- `text_input.py`
+
+Descriptions of these files can be found in the final submission pdf document.
 
 
 ## How to use

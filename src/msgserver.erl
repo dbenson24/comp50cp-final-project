@@ -1,4 +1,4 @@
--module(chat).
+-module(msgserver).
 -behaviour(gen_server).
 
 -export([start_link/1, stop/1]).
@@ -17,7 +17,7 @@ message(Server, UserName, Message) ->
 
 % Server Functions
 init(ServerName) ->
-    io:format("chat: Starting chat room: ~p~n", [ServerName]),
+    io:format("msgserver: Starting msg room: ~p~n", [ServerName]),
     {ok, {ServerName, []}}.
 
 handle_call({list_clients}, _From, {ServerName, Clients}) ->
@@ -31,13 +31,13 @@ handle_cast({subscribe, Client}, {ServerName, Clients}) ->
     NewClients = case lists:member(Client, Clients) of
                    true  -> Clients;
                    false -> [Client | Clients] end,
-    io:format("chat: subscribing ~p to ~p~n", [Client, ServerName]),
+    io:format("msgserver: subscribing ~p to ~p~n", [Client, ServerName]),
     {noreply, {ServerName, NewClients}};
 
 handle_cast({unsubscribe, Client}, {ServerName, Clients}) ->
     {noreply, {ServerName, list:delete(Client, Clients)}}.
 
 terminate(normal, _State) ->
-    io:format("chatserver is terminating.~n",[]),
+    io:format("msgserver is terminating.~n",[]),
     ok.
 

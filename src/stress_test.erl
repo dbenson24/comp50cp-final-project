@@ -20,8 +20,10 @@ subscribe(UserServer, UserName) ->
 spawn_clients(UserServer, N) ->
     for_i(N, fun(I) -> UserName = atom_to_list(node()) ++ "_" ++ integer_to_list(I),
                          spawn(stress_test, subscribe, [UserServer, UserName]) end),
+    timer:sleep(250),
     UserName = atom_to_list(node()) ++ "_" ++ integer_to_list(1),
-    {ok, _Handler} = clientserver:register_handler(fun (Room, _FromUser, Message) -> io:format("user: ~p in room: ~p got ~p~n", [UserName, Room, Message]) end, UserName).
+    {ok, _Handler} = clientserver:register_handler(fun (Room, _FromUser, Message) -> io:format("user: ~p in room: ~p got ~p~n", [UserName, Room, Message]) end, UserName),
+    ok.
 
 despawn_clients(N) -> 
     for_i(N, fun(I) -> UserName = atom_to_list(node()) ++ "_" ++ integer_to_list(I), 

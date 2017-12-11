@@ -15,7 +15,6 @@ subscribe(UserServer, UserName) ->
     ok = clientserver:join_room("test_room2", UserName),
     ok = clientserver:join_room("test_room3", UserName),
     ok = clientserver:join_room("test_room4", UserName),
-    {ok, _Handler} = clientserver:register_handler(fun (Room, _FromUser, Message) -> io:format("user: ~p in room: ~p got ~p~n", [UserName, Room, Message]) end, UserName),
     ok.
 
 spawn_clients(UserServer, N) ->
@@ -24,7 +23,9 @@ spawn_clients(UserServer, N) ->
 
 despawn_clients(N) -> 
     for_i(N, fun(I) -> UserName = atom_to_list(node()) ++ "_" ++ integer_to_list(I), 
-                       spawn(clientserver, stop, [UserName]) end).
+                       spawn(clientserver, stop, [UserName]) end),
+    UserName = atom_to_list(node()) ++ "_" ++ integer_to_list(1),
+    {ok, _Handler} = clientserver:register_handler(fun (Room, _FromUser, Message) -> io:format("user: ~p in room: ~p got ~p~n", [UserName, Room, Message]) end, UserName).
 
 blast_messages(Room) ->
     UserName = atom_to_list(node()) ++ "_1",

@@ -31,52 +31,52 @@ join_room(UserServer, Room, ClientServer) ->
 
 % Server Functions
 init([]) ->
-    {ok, {#{}, #{}, []}}.
+    {ok, {#{}, #{}, [], 0}}.
 
-handle_call({login, Name}, _From, {Users, Rooms, Nodes}) ->
+handle_call({login, Name}, _From, {Users, Rooms, Nodes, I}) ->
     NewUsers = case maps:is_key(Name, Users) of
                    true -> Users;
                    false -> Users#{Name => {false}} end,
     #{Name := UserState} = NewUsers,
     case UserState of
-        {true} -> {reply, {err, "User was already logged in"}, {Users, Rooms, Nodes}};
-        {false} -> {reply, ok, {Users#{Name => {true}}, Rooms, Nodes}} end; % logic here to automatically subscribe the client to updates to their chats
+        {true} -> {reply, {err, "User was already logged in"}, {Users, Rooms, Nodes, I}};
+        {false} -> {reply, ok, {Users#{Name => {true}}, Rooms, Nodes, I}} end; % logic here to automatically subscribe the client to updates to their chats
 
-handle_call({logout, Name}, _From, {Users, Rooms, Nodes}) ->
-    {reply, ok, {Users#{Name => {false}}, Rooms, Nodes}};
+handle_call({logout, Name}, _From, {Users, Rooms, Nodes, I}) ->
+    {reply, ok, {Users#{Name => {false}}, Rooms, Nodes, I}};
 
-handle_call({list_rooms}, _From, {Users, Rooms, Nodes}) ->
-    {reply, Rooms, {Users, Rooms, Nodes}};
+handle_call({list_rooms}, _From, {Users, Rooms, Nodes, I}) ->
+    {reply, Rooms, {Users, Rooms, Nodes, I}};
 
-handle_call({register_room, Node, Name}, _From, {Users, Rooms, Nodes}) ->
+handle_call({register_room, Node, Name}, _From, {Users, Rooms, Nodes, I}) ->
     {Resp, NewRooms} = case maps:is_key(Name, Rooms) of
                     true  -> {{err, "Room was already registered"}, Rooms};
                     false -> {ok, Rooms#{Name => Node}} end,
-    {reply, Resp, {Users, NewRooms, Nodes}};
+    {reply, Resp, {Users, NewRooms, Nodes, I}};
 
-handle_call({unregister_room, Name}, _From, {Users, Rooms, Nodes}) ->
+handle_call({unregister_room, Name}, _From, {Users, Rooms, Nodes, I}) ->
     NewRooms = maps:remove(Name, Rooms),
-    {reply, ok, {Users, NewRooms, Nodes}};
+    {reply, ok, {Users, NewRooms, Nodes, I}};
 
-handle_call({join_room, RoomName, UserServer}, _From, {Users, Rooms, Nodes}) ->
+handle_call({join_room, RoomName, UserServer}, _From, {Users, Rooms, Nodes, I}) ->
     {Node, NewRooms} = case maps:is_key(RoomName, Rooms) of
                true  -> {maps:get(RoomName, Rooms), Rooms};
-               false -> TempNode = lists:nth(rand:uniform(length(Nodes)), Nodes),
+               false -> TempNode = lists:nth(I+1, Nodes),
                         {TempNode, Rooms#{RoomName => TempNode}} end,
     io:format("userserver: ~p is joining ~p on ~p~n", [UserServer, RoomName, Node]),
     gen_server:cast({nodemanager, Node}, {create_room, RoomName, UserServer}),
-    {reply, {ok, Node}, {Users, NewRooms, Nodes}};
+    {reply, {ok, Node}, {Users, NewRooms, Nodes, (I + 1) rem length(Nodes)}};
 
-handle_call({register_node, Node}, _from, {Users, Rooms, Nodes}) ->
+handle_call({register_node, Node}, _from, {Users, Rooms, Nodes, I}) ->
     NewNodes = case lists:member(Node, Nodes) of
                 true -> Nodes;
                 false -> [Node | Nodes] end,
-    {reply, ok, {Users, Rooms, NewNodes}}.
+    {reply, ok, {Users, Rooms, NewNodes, I}}.
     
 
 
-handle_cast(_, {Users, Rooms, Nodes}) ->
-    {noreply, {Users, Rooms, Nodes}}.
+handle_cast(_, {Users, Rooms, Nodes, I}) ->
+    {noreply, {Users, Rooms, Nodes, I}}.
 
 
 

@@ -72,8 +72,9 @@ handle_cast({message, Room, FromUser, Message}, {UserServer, UserName, Rooms, Me
     {noreply, {UserServer, UserName, Rooms, MessageHandlers}}.
 
 
-terminate(normal, {UserServer, UserName, _, _}) ->
+terminate(normal, {UserServer, UserName, Rooms, _}) ->
     io:format("clientserver: is terminating.~n",[]),
+    maps:map(fun(ServerAtom, Node) -> msgserver:unsubscribe({ServerAtom, Node}, {username_to_serveratom(UserName), node()}) end, Rooms),
     ok = userserver:logout(UserServer, UserName),
     ok.
 

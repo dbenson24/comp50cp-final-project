@@ -3,7 +3,7 @@
 
 -export([start_link/1, stop/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
--export([message/3]).
+-export([message/3, unsubscribe/2]).
 
 % Client Functions
 start_link(ServerName) ->
@@ -14,6 +14,9 @@ stop(ServerName) ->
 
 message(Server, UserName, Message) ->
     gen_server:call(Server, {message, UserName, Message}).
+
+unsubscribe(Server, ClientTuple) ->
+    gen_server:cast(Server, {unsubscribe, ClientTuple}).
 
 % Server Functions
 init(ServerName) ->
@@ -35,7 +38,7 @@ handle_cast({subscribe, Client}, {ServerName, Clients}) ->
     {noreply, {ServerName, NewClients}};
 
 handle_cast({unsubscribe, Client}, {ServerName, Clients}) ->
-    {noreply, {ServerName, list:delete(Client, Clients)}}.
+    {noreply, {ServerName, lists:delete(Client, Clients)}}.
 
 terminate(normal, _State) ->
     io:format("msgserver is terminating.~n",[]),
